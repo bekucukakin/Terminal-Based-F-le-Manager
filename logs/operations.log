@@ -22,3 +22,9 @@
 ] Operation: delete, Status: Success
 [Sun Dec  8 22:29:19 2024
 ] Operation: list, Status: Success
+[Sun Dec 22 17:19:39 2024
+] Operation: create, Status: Success
+[Sun Dec 22 17:20:12 2024
+] Operation: search, Status: Not Found
+[Sun Dec 22 17:20:34 2024
+] Operation: search, Status: Success
