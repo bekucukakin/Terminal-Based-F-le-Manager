@@ -4,14 +4,39 @@
 #include <unistd.h>
 #include "file_operations.h"
 #include "logger.h"
+void create_file_or_folder(const char *base_path) {
+    char name[100], full_path[200];
+    int is_folder;
 
-void create_file_or_folder(const char *path) {
-    if (creat(path, 0644) != -1) {
-        printf("File created successfully: %s\n", path);
-        log_operation("create", "Success");
+    // Kullanıcıya dosya mı yoksa klasör mü oluşturulacağı sorulur
+    printf("Do you want to create a folder (1) or a file (0)? ");
+    scanf("%d", &is_folder);
+
+    // Kullanıcıdan dosya/klasör ismini al
+    printf("Enter the name of the file/folder: ");
+    scanf("%s", name);
+
+    // Tam yol oluşturulur (base path + name)
+    snprintf(full_path, sizeof(full_path), "%s/%s", base_path, name);
+
+    if (is_folder) {
+        // Eğer klasör oluşturulacaksa
+        if (mkdir(full_path, 0755) == 0) {
+            printf("Folder created successfully: %s\n", full_path);
+            log_operation("create folder", "Success");
+        } else {
+            perror("Failed to create folder");
+            log_operation("create folder", "Failed");
+        }
     } else {
-        perror("Failed to create file");
-        log_operation("create", "Failed");
+        // Eğer dosya oluşturulacaksa
+        if (creat(full_path, 0644) != -1) {
+            printf("File created successfully: %s\n", full_path);
+            log_operation("create file", "Success");
+        } else {
+            perror("Failed to create file");
+            log_operation("create file", "Failed");
+        }
     }
 }
 

@@ -37,7 +37,7 @@ int main() {
                 list_files(path);
                 break;
             case 2:
-                printf("Enter file/folder name to create: ");
+                printf("Enter file/folder path to create: ");
                 scanf("%s", path);
                 create_file_or_folder(path);
                 break;
