@@ -5,6 +5,7 @@
 #include <sys/stat.h>  // For struct stat and related functions
 #include "file_operations.h"
 #include "logger.h"
+#include <sys/stat.h>
 void create_file_or_folder(const char *base_path) {
     char name[100], full_path[200];
     int is_folder;
