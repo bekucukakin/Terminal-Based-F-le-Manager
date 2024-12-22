@@ -56,30 +56,3 @@ void list_files(const char *path) {
     closedir(dir);
 }
 
-void search_file(const char *dir_path, const char *file_name) {
-    DIR *dir = opendir(dir_path);
-    if (dir == NULL) {
-        perror("Failed to open directory");
-        log_operation("search", "Failed");
-        return;
-    }
-
-    struct dirent *entry;
-    int found = 0;
-
-    while ((entry = readdir(dir)) != NULL) {
-        if (strstr(entry->d_name, file_name) != NULL) {
-            printf("Found: %s/%s\n", dir_path, entry->d_name);
-            found = 1;
-        }
-    }
-
-    closedir(dir);
-
-    if (found) {
-        log_operation("search", "Success");
-    } else {
-        printf("No matching file found in directory: %s\n", dir_path);
-        log_operation("search", "Not Found");
-    }
-}
