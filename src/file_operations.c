@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>  // For struct stat and related functions
 #include "file_operations.h"
 #include "logger.h"
 void create_file_or_folder(const char *base_path) {
@@ -51,39 +52,102 @@ void delete_file_or_folder(const char *path) {
 }
 
 void copy_file(const char *src, const char *dest) {
+    // Check if source file exists
+    struct stat src_stat;
+    if (stat(src, &src_stat) != 0) {
+        perror("Source file doesn't exist");
+        return;
+    }
+    if (!S_ISREG(src_stat.st_mode)) {
+        printf("Source is not a valid file.\n");
+        return;
+    }
+
     int src_fd = open(src, O_RDONLY);
     if (src_fd < 0) {
         perror("Failed to open source file");
-        log_operation("copy", "Failed");
         return;
     }
 
-    int dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (dest_fd < 0) {
-        perror("Failed to open destination file");
+    struct stat dest_stat;
+    if (stat(dest, &dest_stat) == 0 && S_ISDIR(dest_stat.st_mode)) {
+        // If destination is a directory, append the source filename to the destination path
+        char dest_path[512];
+        snprintf(dest_path, sizeof(dest_path), "%s/%s", dest, strrchr(src, '/') + 1);
+
+        int dest_fd = open(dest_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (dest_fd < 0) {
+            perror("Failed to open destination file");
+            close(src_fd);
+            return;
+        }
+
+        char buffer[1024];
+        ssize_t bytes;
+        while ((bytes = read(src_fd, buffer, sizeof(buffer))) > 0) {
+            if (write(dest_fd, buffer, bytes) != bytes) {
+                perror("Error writing to destination file");
+                close(src_fd);
+                close(dest_fd);
+                return;
+            }
+        }
+
         close(src_fd);
-        log_operation("copy", "Failed");
-        return;
-    }
-
-    char buffer[1024];
-    ssize_t bytes;
-    while ((bytes = read(src_fd, buffer, sizeof(buffer))) > 0) {
-        write(dest_fd, buffer, bytes);
-    }
-
-    close(src_fd);
-    close(dest_fd);
-    printf("File copied successfully.\n");
-    log_operation("copy", "Success");
-}
-void move_file(const char *src, const char *dest) {
-    if (rename(src, dest) == 0) {
-        printf("File moved successfully: %s -> %s\n", src, dest);
-        log_operation("move", "Success");
+        close(dest_fd);
+        printf("File copied successfully to directory %s.\n", dest_path);
     } else {
-        perror("Failed to move file");
-        log_operation("move", "Failed");
+        // If destination is a file, use the provided destination path
+        int dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (dest_fd < 0) {
+            perror("Failed to open destination file");
+            close(src_fd);
+            return;
+        }
+
+        char buffer[1024];
+        ssize_t bytes;
+        while ((bytes = read(src_fd, buffer, sizeof(buffer))) > 0) {
+            if (write(dest_fd, buffer, bytes) != bytes) {
+                perror("Error writing to destination file");
+                close(src_fd);
+                close(dest_fd);
+                return;
+            }
+        }
+
+        close(src_fd);
+        close(dest_fd);
+        printf("File copied successfully to %s.\n", dest);
+    }
+}
+
+void move_file(const char *src, const char *dest) {
+    struct stat dest_stat;
+    
+    // Check if the destination is a directory
+    if (stat(dest, &dest_stat) == 0 && S_ISDIR(dest_stat.st_mode)) {
+        // If destination is a directory, create the full destination path
+        char dest_path[512];
+        snprintf(dest_path, sizeof(dest_path), "%s/%s", dest, strrchr(src, '/') + 1);
+
+        // Perform the rename (move) operation
+        if (rename(src, dest_path) == 0) {
+            printf("File moved successfully: %s -> %s\n", src, dest_path);
+            log_operation("move", "Success");
+        } else {
+            perror("Failed to move file");
+            log_operation("move", "Failed");
+        }
+    } else {
+        // If destination is not a directory, treat it as a file
+        if (rename(src, dest) == 0) {
+            printf("File moved successfully: %s -> %s\n", src, dest);
+            log_operation("move", "Success");
+        } else {
+            perror("Failed to move file");
+            log_operation("move", "Failed");
+        }
     }
 }
 
