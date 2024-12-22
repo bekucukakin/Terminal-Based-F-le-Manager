@@ -15,17 +15,17 @@ void list_files(const char *path) {
     struct dirent *entry;
     struct stat file_stat;
 
-    // Başlıklar
+    
     printf("%-10s %-10s %-10s %s\n", "Permissions", "Size", "Type", "Name");
 
-    // Her bir dosya/dizin için döngü
+    
     while ((entry = readdir(dir)) != NULL) {
         char full_path[256];
         snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
 
-        // Dosya hakkında bilgi almak için stat fonksiyonu
+        
         if (stat(full_path, &file_stat) == 0) {
-            // İzinler
+            
             char perms[11] = "----------";
             perms[0] = (S_ISDIR(file_stat.st_mode)) ? 'd' : (S_ISLNK(file_stat.st_mode) ? 'l' : '-');
             perms[1] = (file_stat.st_mode & S_IRUSR) ? 'r' : '-';
@@ -38,17 +38,16 @@ void list_files(const char *path) {
             perms[8] = (file_stat.st_mode & S_IWOTH) ? 'w' : '-';
             perms[9] = (file_stat.st_mode & S_IXOTH) ? 'x' : '-';
 
-            // Dosya türü
-            char file_type[10] = "FILE";  // Varsayılan tür (normal dosya)
+            
+            char file_type[10] = "FILE";  
             if (S_ISDIR(file_stat.st_mode)) {
-                strcpy(file_type, "DIR"); // Dizin
+                strcpy(file_type, "DIR"); 
             } else if (S_ISLNK(file_stat.st_mode)) {
-                strcpy(file_type, "LINK"); // Symbolic link
+                strcpy(file_type, "LINK"); 
             } else if (file_stat.st_mode & S_IXUSR) {
-                strcpy(file_type, "EXEC"); // Çalıştırılabilir dosya
-            }
+                strcpy(file_type, "EXEC"); 
 
-            // İzinler, boyut, dosya adı
+            
             printf("%-10s %-10ld %-10s %s\n", perms, file_stat.st_size, file_type, entry->d_name);
         }
     }
