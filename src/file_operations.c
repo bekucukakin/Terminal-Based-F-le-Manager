@@ -42,12 +42,27 @@ void create_file_or_folder(const char *base_path) {
 }
 
 void delete_file_or_folder(const char *path) {
-    if (unlink(path) == 0) {
-        printf("File deleted successfully: %s\n", path);
-        log_operation("delete", "Success");
+    struct stat path_stat;
+    stat(path, &path_stat);
+
+    if (S_ISDIR(path_stat.st_mode)) {
+        if (rmdir(path) == 0) {
+            printf("Directory deleted successfully: %s\n", path);
+            log_operation("delete", "Success");
+        } else {
+            perror("Failed to delete directory");
+            log_operation("delete", "Failed");
+        }
+    } else if (S_ISREG(path_stat.st_mode)) {
+        if (unlink(path) == 0) {
+            printf("File deleted successfully: %s\n", path);
+            log_operation("delete", "Success");
+        } else {
+            perror("Failed to delete file");
+            log_operation("delete", "Failed");
+        }
     } else {
-        perror("Failed to delete file");
-        log_operation("delete", "Failed");
+        printf("Path is neither a file nor a directory: %s\n", path);
     }
 }
 
