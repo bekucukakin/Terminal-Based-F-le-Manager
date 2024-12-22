@@ -1,16 +1,32 @@
+# Compiler ve bayraklar
 CC = gcc
 CFLAGS = -Wall -g
-OBJ = src/main.o src/file_operations.o src/directory_ops.o src/permissions.o src/logger.o
+INCLUDE_DIR = include
+OBJ_DIR = obj
 BIN_DIR = bin
 
-all: $(BIN_DIR)/file_manager
+# Kaynak dosyaları
+SRC = src/directory_ops.c src/file_operations.c src/logger.c src/main.c src/permissions.c
 
-$(BIN_DIR)/file_manager: $(OBJ)
-	mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+# Nesne dosyaları
+OBJ = $(SRC:src/%.c=$(OBJ_DIR)/%.o)
 
-src/%.o: src/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+# Çıktı dosyası
+TARGET = $(BIN_DIR)/file_manager
 
+# Başlık dosyaları için include yolu
+INC = -I$(INCLUDE_DIR)
+
+# Varsayılan hedef (programı oluştur)
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	$(CC) $(OBJ) -o $(TARGET)
+
+# Nesne dosyalarını derle
+$(OBJ_DIR)/%.o: src/%.c
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
+
+# Temizleme işlemi
 clean:
-	rm -rf $(BIN_DIR) src/*.o logs/*.log
+	rm -f $(OBJ_DIR)/*.o $(TARGET)
