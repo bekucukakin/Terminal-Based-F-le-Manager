@@ -64,7 +64,14 @@ int main(int argc, char *argv[]) {
     while (1) {
         print_menu();
         printf("Enter your choice: ");
-        scanf("%d", &choice);
+        
+        
+        if (scanf("%d", &choice) != 1) {
+            
+            while(getchar() != '\n');
+            printf("Invalid input. Please enter a valid number.\n");
+            continue;
+        }
 
         switch (choice) {
             case 1:
