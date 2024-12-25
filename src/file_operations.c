@@ -13,19 +13,15 @@ void create_file_or_folder(const char *base_path) {
     char name[100], full_path[200];
     int is_folder;
 
-    
     printf("Do you want to create a folder (1) or a file (0)? ");
     scanf("%d", &is_folder);
 
-    
     printf("Enter the name of the file/folder: ");
     scanf("%s", name);
 
-    
     snprintf(full_path, sizeof(full_path), "%s/%s", base_path, name);
 
     if (is_folder) {
-        
         if (mkdir(full_path, 0755) == 0) {
             printf("Folder created successfully: %s\n", full_path);
             log_operation("create folder", "Success");
@@ -34,7 +30,6 @@ void create_file_or_folder(const char *base_path) {
             log_operation("create folder", "Failed");
         }
     } else {
-        
         if (creat(full_path, 0644) != -1) {
             printf("File created successfully: %s\n", full_path);
             log_operation("create file", "Success");
@@ -47,23 +42,27 @@ void create_file_or_folder(const char *base_path) {
 
 void delete_file_or_folder(const char *path) {
     struct stat path_stat;
-    stat(path, &path_stat);
+    if (stat(path, &path_stat) != 0) {
+        perror("Invalid path");
+        log_operation("delete", "Failed");
+        return;
+    }
 
     if (S_ISDIR(path_stat.st_mode)) {
         if (rmdir(path) == 0) {
             printf("Directory deleted successfully: %s\n", path);
-            log_operation("delete", "Success");
+            log_operation("delete folder", "Success");
         } else {
             perror("Failed to delete directory");
-            log_operation("delete", "Failed");
+            log_operation("delete folder", "Failed");
         }
     } else if (S_ISREG(path_stat.st_mode)) {
         if (unlink(path) == 0) {
             printf("File deleted successfully: %s\n", path);
-            log_operation("delete", "Success");
+            log_operation("delete file", "Success");
         } else {
             perror("Failed to delete file");
-            log_operation("delete", "Failed");
+            log_operation("delete file", "Failed");
         }
     } else {
         printf("Path is neither a file nor a directory: %s\n", path);
