@@ -5,6 +5,14 @@
 #include "permissions.h"
 #include "logger.h"
 
+// Kullanıcı etkileşimi için komutları ekleyelim
+void show_usage() {
+    printf("Usage:\n");
+    printf("  slist <directory_path>\t\tList files in the directory\n");
+    printf("  scopy <source_file> <destination_path>\tCopy file to the specified path\n");
+    printf("  sremove <file_or_directory_path>\t\tRemove the specified file or directory\n");
+}
+
 void print_menu() {
     printf("\n=== Terminal Based File Manager ===\n");
     printf("1. List Files (ls)\n");
@@ -18,7 +26,35 @@ void print_menu() {
     printf("9. Exit\n");
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    // Komut satırından gelen argümanlarla işlemleri başlat
+    if (argc > 1) {
+        if (strcmp(argv[1], "slist") == 0) {
+            if (argc != 3) {
+                show_usage();
+                return 1;
+            }
+            list_files(argv[2]); // slist komutu
+        } else if (strcmp(argv[1], "scopy") == 0) {
+            if (argc != 4) {
+                show_usage();
+                return 1;
+            }
+            copy_file(argv[2], argv[3]); // scopy komutu
+        } else if (strcmp(argv[1], "sremove") == 0) {
+            if (argc != 3) {
+                show_usage();
+                return 1;
+            }
+            delete_file_or_folder(argv[2]); // sremove komutu
+        } else {
+            show_usage();
+            return 1;
+        }
+        return 0;
+    }
+
+    // Menü tabanlı etkileşim
     char command[256];
     char path[256];
     int choice;
