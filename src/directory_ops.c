@@ -5,6 +5,192 @@
 #include <string.h>
 #include "directory_ops.h"
 #include "logger.h"
+#ifndef PATH_MAX
+    #define PATH_MAX 4096
+#endif
+#include <asm-generic/fcntl.h>
+#include <unistd.h>
+void create_file_or_folder(const char *base_path) {
+    char name[100], full_path[200];
+    int is_folder;
+
+    
+    printf("Do you want to create a folder (1) or a file (0)? ");
+    if (scanf("%d", &is_folder) != 1 || (is_folder != 0 && is_folder != 1)) {
+        log_error("create_file_or_folder", "Invalid input for folder/file selection.");
+        printf("Invalid input. Please enter 1 for folder or 0 for file.\n");
+        return;
+    }
+
+    
+    printf("Enter the name of the file/folder: ");
+    if (scanf("%s", name) != 1 || strlen(name) == 0) {
+        log_error("create_file_or_folder", "Invalid or empty name provided.");
+        printf("Invalid name. Please provide a valid name for the file/folder.\n");
+        return;
+    }
+
+    
+    snprintf(full_path, sizeof(full_path), "%s/%s", base_path, name);
+
+    
+    if (is_folder) {
+        if (mkdir(full_path, 0755) == 0) {
+            printf("Folder created successfully: %s\n", full_path);
+            log_operation("create folder", "Success");
+        } else {
+            log_error("create_file_or_folder", "Failed to create folder at path: %s", full_path);
+            perror("Failed to create folder");
+        }
+    } 
+    
+    else {
+        if (creat(full_path, 0644) != -1) {
+            printf("File created successfully: %s\n", full_path);
+            log_operation("create file", "Success");
+        } else {
+            log_error("create_file_or_folder", "Failed to create file at path: %s", full_path);
+            perror("Failed to create file");
+        }
+    }
+}
+void delete_file_or_folder(const char *path) {
+    struct stat path_stat;
+
+    if (stat(path, &path_stat) != 0) {
+        log_error("delete_file_or_folder", "Invalid path: %s", path);
+        perror("Invalid path");
+        log_operation("delete", "Failed");
+        return;
+    }
+
+    if (S_ISDIR(path_stat.st_mode)) {
+        DIR *dir = opendir(path);
+        if (dir == NULL) {
+            log_error("delete_file_or_folder", "Failed to open directory: %s", path);
+            perror("Failed to open directory");
+            log_operation("delete folder", "Failed");
+            return;
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            // Skip the "." and ".." entries
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+
+            char entry_path[PATH_MAX];
+            snprintf(entry_path, sizeof(entry_path), "%s/%s", path, entry->d_name);
+
+            // Recursively delete files and subdirectories
+            delete_file_or_folder(entry_path);
+        }
+
+        closedir(dir);
+
+        // Now that the directory is empty, delete it
+        if (rmdir(path) == 0) {
+            printf("Directory deleted successfully: %s\n", path);
+            log_operation("delete folder", "Success");
+        } else {
+            log_error("delete_file_or_folder", "Failed to delete directory at path: %s", path);
+            perror("Failed to delete directory");
+            log_operation("delete folder", "Failed");
+        }
+    } else if (S_ISREG(path_stat.st_mode)) {
+        if (unlink(path) == 0) {
+            printf("File deleted successfully: %s\n", path);
+            log_operation("delete file", "Success");
+        } else {
+            log_error("delete_file_or_folder", "Failed to delete file at path: %s", path);
+            perror("Failed to delete file");
+            log_operation("delete file", "Failed");
+        }
+    } else {
+        printf("The path is neither a file nor a directory: %s\n", path);
+        log_error("delete_file_or_folder", "Path is neither a file nor a directory: %s", path);
+        log_operation("delete", "Failed");
+    }
+}
+void write_to_file(const char *filepath, const char *content) {
+    struct stat st;
+    
+    // Check if the file exists
+    if (stat(filepath, &st) == 0 && st.st_size > 0) {
+        // File exists and has content
+        printf("The file already contains content.\n");
+        printf("Do you want to append to the file (A) or overwrite it (O)? ");
+        
+        char choice;
+        scanf(" %c", &choice);  // Read user input
+
+        if (choice == 'A' || choice == 'a') {
+            // Append to the file
+            int fd = open(filepath, O_WRONLY | O_APPEND, 0644);
+            if (fd < 0) {
+                log_error("write_to_file", "Failed to open file for appending: %s", filepath);
+                perror("Failed to open file for appending");
+                return;
+            }
+
+            ssize_t bytes_written = write(fd, content, strlen(content));
+            if (bytes_written != strlen(content)) {
+                log_error("write_to_file", "Error writing to file: %s", filepath);
+                perror("Error writing to file");
+                close(fd);
+                return;
+            }
+
+            close(fd);
+            printf("Content successfully appended to %s.\n", filepath);
+            log_operation("write", "Append success");
+
+        } else if (choice == 'O' || choice == 'o') {
+            // Overwrite the file
+            int fd = open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) {
+                log_error("write_to_file", "Failed to open file for writing: %s", filepath);
+                perror("Failed to open file for writing");
+                return;
+            }
+
+            ssize_t bytes_written = write(fd, content, strlen(content));
+            if (bytes_written != strlen(content)) {
+                log_error("write_to_file", "Error writing to file: %s", filepath);
+                perror("Error writing to file");
+                close(fd);
+                return;
+            }
+
+            close(fd);
+            printf("Content successfully written to %s.\n", filepath);
+            log_operation("write", "Overwrite success");
+        } else {
+            printf("Invalid choice. No action taken.\n");
+        }
+    } else {
+        // File does not exist or is empty, so just write the content
+        int fd = open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) {
+            log_error("write_to_file", "Failed to open file for writing: %s", filepath);
+            perror("Failed to open file for writing");
+            return;
+        }
+
+        ssize_t bytes_written = write(fd, content, strlen(content));
+        if (bytes_written != strlen(content)) {
+            log_error("write_to_file", "Error writing to file: %s", filepath);
+            perror("Error writing to file");
+            close(fd);
+            return;
+        }
+
+        close(fd);
+        printf("Content successfully written to %s.\n", filepath);
+        log_operation("write", "Success");
+    }
+}
 
 void list_files(const char *path) {
     DIR *dir = opendir(path);
