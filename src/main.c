@@ -160,8 +160,11 @@ int main(int argc, char *argv[]) {
             case 7:
                 printf("Enter file path to write something: ");
                 scanf("%s", path);
+                getchar();
                 printf("Enter something to write: ");
-                scanf("%s", content);
+                fgets(content, sizeof(content), stdin); 
+                content[strcspn(content, "\n")] = 0;
+               
                 write_to_file(path, content);
                 return 0;
             case 8:
