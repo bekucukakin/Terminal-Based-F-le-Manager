@@ -95,7 +95,82 @@ void copy_file(const char *src, const char *dest) {
         printf("File copied successfully to %s.\n", dest);
     }
 }
+void write_to_file(const char *filepath, const char *content) {
+    struct stat st;
+    
+    
+    if (stat(filepath, &st) == 0 && st.st_size > 0) {
+     
+        printf("The file already contains content.\n");
+        printf("Do you want to append to the file (A) or overwrite it (O)? ");
+        
+        char choice;
+        scanf(" %c", &choice);  
 
+        if (choice == 'A' || choice == 'a') {
+            int fd = open(filepath, O_WRONLY | O_APPEND, 0644);
+            if (fd < 0) {
+                log_error("write_to_file", "Failed to open file for appending: %s", filepath);
+                perror("Failed to open file for appending");
+                return;
+            }
+
+            ssize_t bytes_written = write(fd, content, strlen(content));
+            if (bytes_written != strlen(content)) {
+                log_error("write_to_file", "Error writing to file: %s", filepath);
+                perror("Error writing to file");
+                close(fd);
+                return;
+            }
+
+            close(fd);
+            printf("Content successfully appended to %s.\n", filepath);
+            log_operation("write", "Append success");
+
+        } else if (choice == 'O' || choice == 'o') {
+            int fd = open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) {
+                log_error("write_to_file", "Failed to open file for writing: %s", filepath);
+                perror("Failed to open file for writing");
+                return;
+            }
+
+            ssize_t bytes_written = write(fd, content, strlen(content));
+            if (bytes_written != strlen(content)) {
+                log_error("write_to_file", "Error writing to file: %s", filepath);
+                perror("Error writing to file");
+                close(fd);
+                return;
+            }
+
+            close(fd);
+            printf("Content successfully written to %s.\n", filepath);
+            log_operation("write", "Overwrite success");
+        } else {
+            printf("Invalid choice. No action taken.\n");
+        }
+    } else {
+        // File does not exist or is empty, so just write the content
+        int fd = open(filepath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) {
+            log_error("write_to_file", "Failed to open file for writing: %s", filepath);
+            perror("Failed to open file for writing");
+            return;
+        }
+
+        ssize_t bytes_written = write(fd, content, strlen(content));
+        if (bytes_written != strlen(content)) {
+            log_error("write_to_file", "Error writing to file: %s", filepath);
+            perror("Error writing to file");
+            close(fd);
+            return;
+        }
+
+        close(fd);
+        printf("Content successfully written to %s.\n", filepath);
+        log_operation("write", "Success");
+    }
+}
 
 void move_file(const char *src, const char *dest) {
     struct stat dest_stat;
